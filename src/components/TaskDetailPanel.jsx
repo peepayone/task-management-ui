@@ -1,0 +1,96 @@
+/**
+ * Task 詳細資訊面板
+ */
+function TaskDetailPanel({
+  selectedTask,
+  comments,
+  getStatusBadgeClass,
+}) {
+  return (
+    <div>
+      <div className="card-body">
+        <h2 className="h5 mb-3">Task Detail</h2>
+        {selectedTask ? (
+            <div>
+                <div className="mb-3">
+                <div className="mb-2">
+                    <strong>Project</strong>
+                    <div>{selectedTask.project_name}</div>
+                </div>
+
+                <div className="mb-2">
+                    <strong>Title</strong>
+                    <div>{selectedTask.task_title}</div>
+                </div>
+
+                <div className="mb-2">
+                    <strong>Status</strong>
+                    <div>
+                    <span
+                        className={`badge ${getStatusBadgeClass(
+                        selectedTask.task_status
+                        )}`}
+                    >
+                        {selectedTask.task_status}
+                    </span>
+                    </div>
+                </div>
+
+                <div className="mb-2">
+                    <strong>Assigned To</strong>
+                    <div>{selectedTask.assigned_to_user_name ?? "-"}</div>
+                </div>
+
+                <div className="mb-2">
+                    <strong>Due Date</strong>
+                    <div>
+                    {selectedTask.due_date
+                        ? new Date(selectedTask.due_date).toLocaleString()
+                        : "-"}
+                    </div>
+                </div>
+
+                <div className="mb-2">
+                    <strong>Description</strong>
+                    <div>{selectedTask.task_description || "-"}</div>
+                </div>
+                </div>
+                <hr />
+                {/* Comment Section */}
+                <h3 className="h6 mb-3">Comments</h3>
+                <div className="mb-3">
+                {comments.length > 0 ? (
+                    comments.map((comment) => (
+                    <div
+                        key={comment.task_comment_id}
+                        className="border rounded p-2 mb-2 bg-light"
+                    >
+                        <div className="fw-semibold">{comment.user_name}</div>
+                        <div>{comment.task_comment_content}</div>
+                    </div>
+                    ))
+                ) : (
+                    <p className="text-muted">No comments yet.</p>
+                )}
+                </div>
+                <div>
+                <label className="form-label">Add Comment</label>
+                <textarea
+                    className="form-control mb-2"
+                    rows="3"
+                    placeholder="Write a comment..."
+                />
+                <button className="btn btn-primary btn-sm">
+                    Submit Comment
+                </button>
+                </div>
+            </div>
+        ) : (
+            <p className="text-muted mb-0">Select a task to view details.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default TaskDetailPanel;
