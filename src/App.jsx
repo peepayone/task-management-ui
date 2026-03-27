@@ -3,6 +3,7 @@ import { API_BASE_URL } from "./services/api";
 import ProjectPanel from "./components/ProjectPanel";
 import TaskTablePanel from "./components/TaskTablePanel";
 import TaskDetailPanel from "./components/TaskDetailPanel";
+import NewTaskOverlay from "./components/NewTaskOverlay";
 
 /**
  * 主畫面骨架
@@ -28,6 +29,7 @@ function App() {
     task_description: "",
     task_status: "todo",
     assigned_to_user_id: "",
+    created_by_user_id: "",
     due_date: "",
   });
 
@@ -64,59 +66,96 @@ function App() {
   // tasks 理論上已篩選自projectId
   const [tasks, setTasks] = useState([]);
   useEffect(() => {
+    // 切換查詢條件前先清空目前 detail / comments
+    setSelectedTaskId(null);
+    setTasks([]);
+    setComments([]);
 
-    // 如果沒有選到 project，就直接結束
-    if (!selectedProjectId) {
+    fetchTasks(selectedProjectId);
+  }, [
+    selectedProjectId,
+    taskStatusFilter,
+    assignedUserFilter,
+    sortBy,
+    sortOrder,
+  ]);
+  
+  /**
+   * 依目前條件抓取 task 清單
+   * @param {number} projectId 目前選到的 project id
+   * @param {number | null} preferredTaskId 若有指定，抓完後優先選這筆 task
+   */
+  const fetchTasks = async (projectId, preferredTaskId = null) => {
+    // 沒選 project 就不查
+    if (!projectId) {
+      setTasks([]);
+      setSelectedTaskId(null);
+      setComments([]);
       return;
     }
 
-    // 用 URLSearchParams 組 query string
     const params = new URLSearchParams();
+    params.append("projectId", projectId);
 
-     // projectId是目前最基本的篩選條件
-    params.append("projectId", selectedProjectId);
-    // 有選 status 才帶
     if (taskStatusFilter) {
       params.append("taskStatus", taskStatusFilter);
     }
 
-    // 有選 assigned user 才帶
     if (assignedUserFilter) {
       params.append("assignedToUserId", assignedUserFilter);
     }
 
-    // 有選 sortBy 才帶
     if (sortBy) {
       params.append("sortBy", sortBy);
     }
 
-    // 有選 sortOrder 才帶
     if (sortOrder) {
       params.append("sortOrder", sortOrder);
     }
 
-    fetch(`${API_BASE_URL}/tasks?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        const taskList = Array.isArray(data) ? data : [];
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks?${params.toString()}`);
 
-        setTasks(taskList);
- 
-        // 如果有 task，就預設選第一筆
-        setSelectedTaskId(taskList.length > 0 ? taskList[0].task_id : null);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch tasks:", err);
-        setAllTaskDefault();
-      });
-  }, [selectedProjectId,
-      taskStatusFilter,
-      assignedUserFilter,
-      sortBy,
-      sortOrder,]);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tasks: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const taskList = Array.isArray(data) ? data : [];
+
+      setTasks(taskList);
+
+      // 如果有指定想選中的 task，就優先選它
+      if (preferredTaskId) {
+        const matchedTask = taskList.find(
+          (task) => task.task_id === preferredTaskId
+        );
+
+        if (matchedTask) {
+          setSelectedTaskId(preferredTaskId);
+          return;
+        }
+      }
+
+      // 沒指定或找不到指定 task，就選第一筆
+      if (taskList.length > 0) {
+        setSelectedTaskId(taskList[0].task_id);
+      } else {
+        setSelectedTaskId(null);
+        setComments([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch tasks:", error);
+      setTasks([]);
+      setSelectedTaskId(null);
+      setComments([]);
+    }
+  };
 
   // comments (依task變化)
   const [comments, setComments] = useState([]);
+  // new comment
+  const [newCommentContent, setNewCommentContent] = useState("");
   useEffect(() => {
     if (!selectedTaskId) {
       setComments([]);
@@ -184,6 +223,7 @@ function App() {
       task_description: "",
       task_status: "todo",
       assigned_to_user_id: currentUserId || "",
+      created_by_user_id: "",
       due_date: "",
     });
 
@@ -209,6 +249,65 @@ function App() {
     }));
   };
 
+  /**
+ * 建立新 task
+ * - 呼叫 POST /tasks
+ * - 成功後關閉 overlay
+ * - refresh task list
+ * - 自動選中新建立的 task
+ */
+const handleCreateTask = async () => {
+  // 簡單前端驗證
+  if (!selectedProjectId) {
+    alert("Please select a project first.");
+    return;
+  }
+
+  if (!newTaskForm.task_title.trim()) {
+    alert("Task title is required.");
+    return;
+  }
+
+  // 依你的後端 DTO / API 格式組 payload
+  const payload = {
+    project_id: selectedProjectId,
+    task_title: newTaskForm.task_title.trim(),
+    task_description: newTaskForm.task_description.trim(),
+    task_status: newTaskForm.task_status,
+    assigned_to_user_id: newTaskForm.assigned_to_user_id
+      ? Number(newTaskForm.assigned_to_user_id)
+      : null,
+    created_by_user_id: currentUserId,
+    due_date: newTaskForm.due_date || null,
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/tasks`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create task: ${response.status}`);
+    }
+
+    // 假設後端會回傳新建 task
+    const createdTask = await response.json();
+
+    // 關閉 overlay
+    closeNewTaskOverlay();
+
+    // 重新抓 task 清單，並優先選中新建 task
+    await fetchTasks(selectedProjectId, createdTask.task_id);
+  } catch (error) {
+    console.error("Failed to create task:", error);
+    alert("Failed to create task.");
+  }
+};
+
 /**
  * 切換 Project
  * - 清空 task 舊資料
@@ -222,10 +321,6 @@ function App() {
 
   const handleOpenNewProject = () => {
     console.log("Open New Project Overlay");
-  };
-
-  const handleOpenNewTask = () => {
-    console.log("Open New Task Overlay");
   };
 
   return (
@@ -290,7 +385,7 @@ function App() {
                   setAssignedUserFilter={setAssignedUserFilter}
                   setSortBy={setSortBy}
                   setSortOrder={setSortOrder}
-                  onOpenNewTask={handleOpenNewTask}
+                  onOpenNewTask={openNewTaskOverlay}
                   tasks={tasks}
                   selectedTaskId={selectedTaskId}
                   setSelectedTaskId={setSelectedTaskId}
@@ -310,152 +405,17 @@ function App() {
           </div>
         </div>
       </div>
-      {isNewTaskOpen && (
-        <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-          style={{
-            backgroundColor: "rgba(0, 0, 0, 0.45)",
-            zIndex: 1050,
-            padding: "16px",
-          }}
-          onClick={closeNewTaskOverlay}
-        >
-          <div
-            className="bg-white rounded shadow w-100"
-            style={{
-              maxWidth: "640px",
-              maxHeight: "90vh",
-              overflowY: "auto",
-            }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="d-flex justify-content-between align-items-center border-bottom p-3">
-              <div>
-                <h2 className="h5 mb-1">New Task</h2>
-                <p className="text-muted mb-0">
-                  Create a new task for the selected project.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-secondary"
-                onClick={closeNewTaskOverlay}
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="p-3">
-              <div className="mb-3">
-                <label className="form-label">Project</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={
-                    projects.find(
-                      (project) => project.project_id === selectedProjectId
-                    )?.project_name ?? ""
-                  }
-                  disabled
-                />
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">Title</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  name="task_title"
-                  value={newTaskForm.task_title}
-                  onChange={handleNewTaskFormChange}
-                  placeholder="Enter task title"
-                />
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">Description</label>
-                <textarea
-                  className="form-control"
-                  rows="4"
-                  name="task_description"
-                  value={newTaskForm.task_description}
-                  onChange={handleNewTaskFormChange}
-                  placeholder="Enter task description"
-                />
-              </div>
-
-              <div className="row g-3">
-                <div className="col-12 col-md-4">
-                  <label className="form-label">Status</label>
-                  <select
-                    className="form-select"
-                    name="task_status"
-                    value={newTaskForm.task_status}
-                    onChange={handleNewTaskFormChange}
-                  >
-                    <option value="todo">todo</option>
-                    <option value="doing">doing</option>
-                    <option value="done">done</option>
-                  </select>
-                </div>
-
-                <div className="col-12 col-md-4">
-                  <label className="form-label">Assigned User</label>
-                  <select
-                    className="form-select"
-                    name="assigned_to_user_id"
-                    value={newTaskForm.assigned_to_user_id}
-                    onChange={handleNewTaskFormChange}
-                  >
-                    <option value="">Select user</option>
-                    {users.map((user) => (
-                      <option key={user.user_id} value={user.user_id}>
-                        {user.user_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="col-12 col-md-4">
-                  <label className="form-label">Due Date</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    name="due_date"
-                    value={newTaskForm.due_date}
-                    onChange={handleNewTaskFormChange}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="border-top p-3 d-flex justify-content-end gap-2">
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
-                onClick={closeNewTaskOverlay}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  console.log("New Task Form:", newTaskForm);
-                }}
-              >
-                Create Task
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>    
+      <NewTaskOverlay
+        isOpen={isNewTaskOpen}
+        onClose={closeNewTaskOverlay}
+        newTaskForm={newTaskForm}
+        onFormChange={handleNewTaskFormChange}
+        onSubmit={handleCreateTask}
+        projects={projects}
+        selectedProjectId={selectedProjectId}
+        users={users}
+      />
+    </div>
   );
 }
 
