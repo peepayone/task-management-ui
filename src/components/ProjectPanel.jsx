@@ -15,7 +15,7 @@ function ProjectPanel({
         <div>
           <button
             type="button"
-            className="btn btn-outline-primary btn-sm"
+            className="btn btn-success btn-sm"
             onClick={onOpenNewProject}>
             + New Project
           </button>

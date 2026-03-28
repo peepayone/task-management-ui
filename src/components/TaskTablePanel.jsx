@@ -71,7 +71,7 @@ function TaskTablePanel({
                 </div>
                 <div>
                     <button
-                    className="btn btn-primary btn-sm"
+                    className="btn btn-success btn-sm"
                     onClick={onOpenNewTask}
                     disabled={!selectedProjectId}>
                     + New Task

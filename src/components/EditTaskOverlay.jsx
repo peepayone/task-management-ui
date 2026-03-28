@@ -1,12 +1,12 @@
-function NewTaskOverlay({
+function EditTaskOverlay({
   isOpen,
   onClose,
-  newTaskForm,
-  onFormChange,
   onSubmit,
+  editTaskForm,
+  onFormChange,
   projects,
   selectedProjectId,
-  users,
+  users
 }) {
   if (!isOpen) return null;
 
@@ -35,9 +35,9 @@ function NewTaskOverlay({
       >
         <div className="d-flex justify-content-between align-items-center border-bottom p-3">
           <div className="text-start">
-            <h2 className="mb-1">New Task</h2>
+            <h2 className="mb-1">Edit Task</h2>
             <p className="text-muted mb-0">
-              Create a new task for the selected project.
+              Update the selected task.
             </p>
           </div>
 
@@ -67,7 +67,7 @@ function NewTaskOverlay({
               type="text"
               className="form-control"
               name="task_title"
-              value={newTaskForm.task_title}
+              value={editTaskForm.task_title}
               onChange={onFormChange}
               placeholder="Enter task title"
             />
@@ -79,7 +79,7 @@ function NewTaskOverlay({
               className="form-control"
               rows="4"
               name="task_description"
-              value={newTaskForm.task_description}
+              value={editTaskForm.task_description}
               onChange={onFormChange}
               placeholder="Enter task description"
             />
@@ -91,7 +91,7 @@ function NewTaskOverlay({
               <select
                 className="form-select"
                 name="task_status"
-                value={newTaskForm.task_status}
+                value={editTaskForm.task_status}
                 onChange={onFormChange}
               >
                 <option value="todo">todo</option>
@@ -105,7 +105,7 @@ function NewTaskOverlay({
               <select
                 className="form-select"
                 name="assigned_to_user_id"
-                value={newTaskForm.assigned_to_user_id}
+                value={editTaskForm.assigned_to_user_id}
                 onChange={onFormChange}
               >
                 <option value="">Select user</option>
@@ -123,7 +123,7 @@ function NewTaskOverlay({
                 type="date"
                 className="form-control"
                 name="due_date"
-                value={newTaskForm.due_date}
+                value={editTaskForm.due_date}
                 onChange={onFormChange}
               />
             </div>
@@ -141,10 +141,10 @@ function NewTaskOverlay({
 
           <button
             type="button"
-            className="btn btn-success"
+            className="btn btn-primary"
             onClick={onSubmit}
           >
-            Create Task
+            Save Changes
           </button>
         </div>
       </div>
@@ -152,4 +152,4 @@ function NewTaskOverlay({
   );
 }
 
-export default NewTaskOverlay;
+export default EditTaskOverlay;

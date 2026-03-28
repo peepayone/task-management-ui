@@ -4,6 +4,7 @@ import ProjectPanel from "./components/ProjectPanel";
 import TaskTablePanel from "./components/TaskTablePanel";
 import TaskDetailPanel from "./components/TaskDetailPanel";
 import NewTaskOverlay from "./components/NewTaskOverlay";
+import EditTaskOverlay from "./components/EditTaskOverlay";
 
 /**
  * 主畫面骨架
@@ -30,6 +31,16 @@ function App() {
     task_status: "todo",
     assigned_to_user_id: "",
     created_by_user_id: "",
+    due_date: "",
+  });
+
+  // Edit Task Overlay
+  const [isEditTaskOpen, setIsEditTaskOpen] = useState(false);
+  const [editTaskForm, setEditTaskForm] = useState({
+    task_title: "",
+    task_description: "",
+    task_status: "todo",
+    assigned_to_user_id: "",
     due_date: "",
   });
 
@@ -65,21 +76,6 @@ function App() {
 
   // tasks 理論上已篩選自projectId
   const [tasks, setTasks] = useState([]);
-  useEffect(() => {
-    // 切換查詢條件前先清空目前 detail / comments
-    setSelectedTaskId(null);
-    setTasks([]);
-    setComments([]);
-
-    fetchTasks(selectedProjectId);
-  }, [
-    selectedProjectId,
-    taskStatusFilter,
-    assignedUserFilter,
-    sortBy,
-    sortOrder,
-  ]);
-  
   /**
    * 依目前條件抓取 task 清單
    * @param {number} projectId 目前選到的 project id
@@ -151,26 +147,49 @@ function App() {
       setComments([]);
     }
   };
+  useEffect(() => {
+    // 切換查詢條件前先清空目前 detail / comments
+    setSelectedTaskId(null);
+    setTasks([]);
+    setComments([]);
+    setNewCommentContent("");
 
+    fetchTasks(selectedProjectId);
+  }, [
+    selectedProjectId,
+    taskStatusFilter,
+    assignedUserFilter,
+    sortBy,
+    sortOrder,
+  ]);
+  
   // comments (依task變化)
   const [comments, setComments] = useState([]);
   // new comment
   const [newCommentContent, setNewCommentContent] = useState("");
-  useEffect(() => {
-    if (!selectedTaskId) {
+  const fetchComments = async (taskId) => {
+    if (!taskId) {
       setComments([]);
       return;
     }
 
-    fetch(`${API_BASE_URL}/tasks/${selectedTaskId}/comments`)
-      .then((res) => res.json())
-      .then((data) => {
-        setComments(Array.isArray(data) ? data : []);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch comments:", err);
-        setComments([]);
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/comments`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch comments: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setComments(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.log("Failed to fetch comments: ", error);
+      setComments([]);
+    }
+  }
+  useEffect(() => {
+    setNewCommentContent("");
+    fetchComments(selectedTaskId);
   }, [selectedTaskId]);
 
   /**
@@ -212,11 +231,10 @@ function App() {
     setAssignedUserFilter("");
     setSortBy("");
     setSortOrder("asc");
+    setNewCommentContent("");
   }
 
-  /**
- * 開啟 New Task Overlay
- */
+  // 開啟 New Task Overlay
   const openNewTaskOverlay = () => {
     setNewTaskForm({
       task_title: "",
@@ -229,14 +247,10 @@ function App() {
 
     setIsNewTaskOpen(true);
   };
-
-/**
- * 關閉 New Task Overlay
- */
+  // 關閉 New Task Overlay
   const closeNewTaskOverlay = () => {
     setIsNewTaskOpen(false);
   };
-
 /**
  * 處理 New Task 表單欄位變化
  */
@@ -250,63 +264,212 @@ function App() {
   };
 
   /**
- * 建立新 task
- * - 呼叫 POST /tasks
- * - 成功後關閉 overlay
- * - refresh task list
- * - 自動選中新建立的 task
- */
-const handleCreateTask = async () => {
-  // 簡單前端驗證
-  if (!selectedProjectId) {
-    alert("Please select a project first.");
-    return;
-  }
-
-  if (!newTaskForm.task_title.trim()) {
-    alert("Task title is required.");
-    return;
-  }
-
-  // 依你的後端 DTO / API 格式組 payload
-  const payload = {
-    project_id: selectedProjectId,
-    task_title: newTaskForm.task_title.trim(),
-    task_description: newTaskForm.task_description.trim(),
-    task_status: newTaskForm.task_status,
-    assigned_to_user_id: newTaskForm.assigned_to_user_id
-      ? Number(newTaskForm.assigned_to_user_id)
-      : null,
-    created_by_user_id: currentUserId,
-    due_date: newTaskForm.due_date || null,
-  };
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/tasks`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to create task: ${response.status}`);
+   * 建立新 task
+   * - 呼叫 POST /tasks
+   * - 成功後關閉 overlay
+   * - refresh task list
+   * - 自動選中新建立的 task
+   */
+  const handleCreateTask = async () => {
+    // 簡單前端驗證
+    if (!selectedProjectId) {
+      alert("Please select a project first.");
+      return;
     }
 
-    // 假設後端會回傳新建 task
-    const createdTask = await response.json();
+    if (!newTaskForm.task_title.trim()) {
+      alert("Task title is required.");
+      return;
+    }
 
-    // 關閉 overlay
-    closeNewTaskOverlay();
+    // 依你的後端 DTO / API 格式組 payload
+    const payload = {
+      project_id: selectedProjectId,
+      task_title: newTaskForm.task_title.trim(),
+      task_description: newTaskForm.task_description.trim(),
+      task_status: newTaskForm.task_status,
+      assigned_to_user_id: newTaskForm.assigned_to_user_id
+        ? Number(newTaskForm.assigned_to_user_id)
+        : null,
+      created_by_user_id: currentUserId,
+      due_date: newTaskForm.due_date || null,
+    };
 
-    // 重新抓 task 清單，並優先選中新建 task
-    await fetchTasks(selectedProjectId, createdTask.task_id);
-  } catch (error) {
-    console.error("Failed to create task:", error);
-    alert("Failed to create task.");
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create task: ${response.status}`);
+      }
+
+      // 假設後端會回傳新建 task
+      const createdTask = await response.json();
+
+      // 關閉 overlay
+      closeNewTaskOverlay();
+
+      // 重新抓 task 清單，並優先選中新建 task
+      await fetchTasks(selectedProjectId, createdTask.task_id);
+    } catch (error) {
+      console.error("Failed to create task:", error);
+      alert("Failed to create task.");
+    }
+  };
+
+  /**
+   * 刪除 task
+   * 成功後refresh task list
+   */
+  const handleDeleteTask = async () => {
+    if (!selectedTaskId) {
+      alert("Please select a task first.");
+      return;
+    }
+
+    const confirmed = window.confirm("Are you sure you want to delete this task?");
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/tasks/${selectedTaskId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed: ${response.status}`);
+      }
+
+      // 重新抓 task list
+      await fetchTasks(selectedProjectId);
+    } catch (error) {
+      console.error("Delete task failed:", error);
+      alert("Failed to delete task.");
+    }
+  };
+
+  // 開啟 Edit Task Overlay
+  const openEditTaskOverlay = () => {
+    if (!selectedTask) {
+      return;
+    }
+
+    setEditTaskForm({
+      task_title: selectedTask.task_title || "",
+      task_description: selectedTask.task_description || "",
+      task_status: selectedTask.task_status || "todo",
+      assigned_to_user_id: selectedTask.assigned_to_user_id ?? "",
+      due_date: selectedTask.due_date
+        ? selectedTask.due_date.slice(0, 10)
+        : "",
+    });
+
+    setIsEditTaskOpen(true);
+  };
+  // 關閉 Edit Task Overlay
+  const closeEditTaskOverlay = () => {
+    setIsEditTaskOpen(false);
+  };
+
+  const handleEditTaskFormChange = (event) => {
+    const { name, value } = event.target;
+
+    setEditTaskForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleEditTask = async () => {
+    if (!selectedTaskId) {
+      alert("Please select a task first.");
+      return;
+    }
+
+    if (!editTaskForm.task_title.trim()) {
+      alert("Task title is required.");
+      return;
+    }
+
+    const payload = {
+      task_title: editTaskForm.task_title.trim(),
+      task_description: editTaskForm.task_description.trim(),
+      task_status: editTaskForm.task_status,
+      assigned_to_user_id: editTaskForm.assigned_to_user_id
+        ? Number(editTaskForm.assigned_to_user_id)
+        : null,
+      due_date: editTaskForm.due_date || null,
+    };
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks/${selectedTaskId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed: ${response.status}`);
+      }
+
+      closeEditTaskOverlay();
+
+      // 更新後重抓，並維持選中這筆 task
+      await fetchTasks(selectedProjectId, selectedTaskId);
+    } catch (error) {
+      console.error("Update task failed:", error);
+      alert("Failed to update task.");
+    }
+  };
+
+  // 建立新 task comment 後refresh task comments
+  const handleCreateComment = async () =>{
+    if (!selectedTaskId){
+      alert("This should never happened.");
+      return;
+    }
+
+    if (!newCommentContent.trim()) {
+      alert("Comment is required.");
+      return;
+    }
+
+    const payload = {
+      user_id: currentUserId,
+      task_comment_content: newCommentContent.trim()
+    };
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks/${selectedTaskId}/comments`,{
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create comment: ${response.status}`);
+      }
+
+      // clear comment after submit successfully
+      setNewCommentContent("");
+      // refresh comments section 
+      await fetchComments(selectedTaskId);
+    }catch(error) {
+      console.error("Failed to create comment:", error);
+      alert("Failed to create comment.");
+    }
   }
-};
 
 /**
  * 切換 Project
@@ -401,6 +564,11 @@ const handleCreateTask = async () => {
               selectedTask={selectedTask}
               comments={selectedTaskComments}
               getStatusBadgeClass={getStatusBadgeClass}
+              newCommentContent={newCommentContent}
+              setNewCommentContent={setNewCommentContent}
+              onSubmitComment={handleCreateComment}
+              onDeleteTask={handleDeleteTask}
+              onOpenEditTask={openEditTaskOverlay}
             />
           </div>
         </div>
@@ -411,6 +579,16 @@ const handleCreateTask = async () => {
         newTaskForm={newTaskForm}
         onFormChange={handleNewTaskFormChange}
         onSubmit={handleCreateTask}
+        projects={projects}
+        selectedProjectId={selectedProjectId}
+        users={users}
+      />
+      <EditTaskOverlay
+        isOpen={isEditTaskOpen}
+        onClose={closeEditTaskOverlay}
+        editTaskForm={editTaskForm}
+        onFormChange={handleEditTaskFormChange}
+        onSubmit={handleEditTask}
         projects={projects}
         selectedProjectId={selectedProjectId}
         users={users}

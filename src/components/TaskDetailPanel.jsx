@@ -5,55 +5,77 @@ function TaskDetailPanel({
   selectedTask,
   comments,
   getStatusBadgeClass,
+  newCommentContent,
+  setNewCommentContent,
+  onSubmitComment,
+  onDeleteTask,
+  onOpenEditTask
 }) {
   return (
     <div>
       <div className="card-body">
         <h2 className="h5 mb-3">Task Detail</h2>
+        
         {selectedTask ? (
             <div>
                 <div className="mb-3">
-                <div className="mb-2">
-                    <strong>Project</strong>
-                    <div>{selectedTask.project_name}</div>
-                </div>
+                    <div className="mb-2">
+                        <strong>Project</strong>
+                        <div>{selectedTask.project_name}</div>
+                    </div>
 
-                <div className="mb-2">
-                    <strong>Title</strong>
-                    <div>{selectedTask.task_title}</div>
-                </div>
+                    <div className="mb-2">
+                        <strong>Title</strong>
+                        <div>{selectedTask.task_title}</div>
+                    </div>
 
-                <div className="mb-2">
-                    <strong>Status</strong>
-                    <div>
-                    <span
-                        className={`badge ${getStatusBadgeClass(
-                        selectedTask.task_status
-                        )}`}
+                    <div className="mb-2">
+                        <strong>Status</strong>
+                        <div>
+                        <span
+                            className={`badge ${getStatusBadgeClass(
+                            selectedTask.task_status
+                            )}`}
+                        >
+                            {selectedTask.task_status}
+                        </span>
+                        </div>
+                    </div>
+
+                    <div className="mb-2">
+                        <strong>Assigned To</strong>
+                        <div>{selectedTask.assigned_to_user_name ?? "-"}</div>
+                    </div>
+
+                    <div className="mb-2">
+                        <strong>Due Date</strong>
+                        <div>
+                        {selectedTask.due_date
+                            ? new Date(selectedTask.due_date).toLocaleString()
+                            : "-"}
+                        </div>
+                    </div>
+
+                    <div className="mb-2">
+                        <strong>Description</strong>
+                        <div>{selectedTask.task_description || "-"}</div>
+                    </div>
+                    <button
+                        type="button"
+                        className="btn btn-primary btn-sm m-1"
+                        onClick={onOpenEditTask}
+                        disabled={!selectedTask}
                     >
-                        {selectedTask.task_status}
-                    </span>
-                    </div>
-                </div>
-
-                <div className="mb-2">
-                    <strong>Assigned To</strong>
-                    <div>{selectedTask.assigned_to_user_name ?? "-"}</div>
-                </div>
-
-                <div className="mb-2">
-                    <strong>Due Date</strong>
-                    <div>
-                    {selectedTask.due_date
-                        ? new Date(selectedTask.due_date).toLocaleString()
-                        : "-"}
-                    </div>
-                </div>
-
-                <div className="mb-2">
-                    <strong>Description</strong>
-                    <div>{selectedTask.task_description || "-"}</div>
-                </div>
+                        Edit Task
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-danger btn-sm m-1"
+                        onClick={onDeleteTask}
+                        disabled={!selectedTask}
+                    >
+                        Delete Task
+                    </button>
                 </div>
                 <hr />
                 {/* Comment Section */}
@@ -72,17 +94,22 @@ function TaskDetailPanel({
                 ) : (
                     <p className="text-muted">No comments yet.</p>
                 )}
+                
                 </div>
                 <div>
-                <label className="form-label">Add Comment</label>
-                <textarea
-                    className="form-control mb-2"
-                    rows="3"
-                    placeholder="Write a comment..."
-                />
-                <button className="btn btn-primary btn-sm">
-                    Submit Comment
-                </button>
+                    <label className="form-label">Leave a Comment</label>
+                    <textarea
+                        className="form-control mb-2"
+                        rows="3"
+                        placeholder="Write a comment..."
+                        value={newCommentContent}
+                        onChange={(event) => setNewCommentContent(event.target.value)}
+                    />
+                    <button
+                    className="btn btn-success btn-sm"
+                    onClick={onSubmitComment}>
+                        Add Comment
+                    </button>
                 </div>
             </div>
         ) : (
