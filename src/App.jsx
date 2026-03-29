@@ -6,6 +6,7 @@ import TaskDetailPanel from "./components/TaskDetailPanel";
 import NewTaskOverlay from "./components/NewTaskOverlay";
 import EditTaskOverlay from "./components/EditTaskOverlay";
 import NewProjectOverlay from "./components/NewProjectOverlay";
+import EditProjectOverlay from "./components/EditProjectOverlay";
 
 /**
  * 主畫面骨架
@@ -47,6 +48,13 @@ function App() {
   // New Project Overlay
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [newProjectForm, setNewProjectForm] = useState({
+    project_name: "",
+    project_description: "",
+  });
+
+  // Edit Project Overlay
+  const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [editProjectForm, setEditProjectForm] = useState({
     project_name: "",
     project_description: "",
   });
@@ -256,7 +264,7 @@ function App() {
     setSortBy("");
     setSortOrder("asc");
     setNewCommentContent("");
-  }
+  };
 
   // 建立新project -POST -refresh projectlist -choose new project
   const handleCreateProject = async () => {
@@ -299,6 +307,47 @@ function App() {
     } catch (error) {
       console.error("Create project failed:", error);
       alert("Failed to create project.");
+    }
+  };
+
+  // update project -PUT
+  const handleEditProject = async () => {
+    if (!selectedProjectId) {
+      alert("Please select a project first.");
+      return;
+    }
+
+    if(!editProjectForm.project_name.trim()) {
+      alert("Project name is required");
+      return;
+    }
+
+    const payload = {
+      project_name: editProjectForm.project_name.trim(),
+      project_description: editProjectForm.project_description.trim()
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed: ${response.status}`);
+      }
+
+      //關閉 overlay
+      closeEditProjectOverlay();
+
+      // 更新後重抓 projects，並維持選中同一個 project
+      await fetchProjects(selectedProjectId);
+    } catch (error) {
+      console.error("Update project failed:", error);
+      alert("Failed to update project.");
     }
   };
   
@@ -469,10 +518,11 @@ function App() {
       console.error("Failed to create comment:", error);
       alert("Failed to create comment.");
     }
-  }
+  };
 
  // 切換 Project- 清空 task 舊資料 - 重設 filter / sort - 切換目前選到的 project
   const handleProjectChange = (projectId) => {
+    if (projectId === selectedProjectId) return;
     setAllTaskDefault();
     setSelectedProjectId(projectId);
   };
@@ -485,6 +535,21 @@ function App() {
     });
 
     setIsNewProjectOpen(true);
+  };
+  // 開啟 Edit Project Overlay
+  const openEditProjectOverlay = () => {
+    const selectedProject = projects.find(
+      (project) => project.project_id === selectedProjectId
+    );
+
+    if(!selectedProject) return;
+
+    setEditProjectForm({
+      project_name: selectedProject.project_name || "",
+      project_description: selectedProject.project_description || "",
+    });
+
+    setIsEditProjectOpen(true);
   };
   // 開啟 New Task Overlay
   const openNewTaskOverlay = () => {
@@ -521,6 +586,10 @@ function App() {
   const closeNewProjectOverlay = () => {
     setIsNewProjectOpen(false);
   }
+  // 關閉 Edit Project Overlay
+  const closeEditProjectOverlay = () => {
+    setIsEditProjectOpen(false);
+  }
   // 關閉 New Task Overlay
   const closeNewTaskOverlay = () => {
     setIsNewTaskOpen(false);
@@ -535,6 +604,15 @@ function App() {
     const { name, value } = event.target;
 
     setNewProjectForm((prev) => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+  // Edit Project Form Change
+  const handleEditProjectFormChange = (event) => {
+    const { name, value } = event.target;
+
+    setEditProjectForm((prev) => ({
       ...prev,
       [name]: value
     }))
@@ -601,7 +679,8 @@ function App() {
               projects={projects}
               selectedProjectId={selectedProjectId}
               onProjectChange={handleProjectChange}
-              onOpenNewProject={openNewProjectOverlay}/>
+              onOpenNewProject={openNewProjectOverlay}
+              onOpenEditProject={openEditProjectOverlay}/>
           </div>     
         </div>
 
@@ -671,6 +750,13 @@ function App() {
         onSubmit={handleCreateProject}
         newProjectForm={newProjectForm}
         onFormChange={handleNewProjectFormChange}
+      />
+      <EditProjectOverlay
+        isOpen={isEditProjectOpen}
+        onClose={closeEditProjectOverlay}
+        onSubmit={handleEditProject}
+        editProjectForm={editProjectForm}
+        onFormChange={handleEditProjectFormChange}
       />
     </div>
   );

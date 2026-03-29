@@ -6,6 +6,7 @@ function ProjectPanel({
   selectedProjectId,
   onProjectChange,
   onOpenNewProject,
+  onOpenEditProject
 }) {
   return (
     <div className="card-body">
@@ -15,9 +16,17 @@ function ProjectPanel({
         <div>
           <button
             type="button"
-            className="btn btn-success btn-sm"
+            className="btn btn-success btn-sm m-1"
             onClick={onOpenNewProject}>
             + New Project
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm m-1"
+            onClick={onOpenEditProject}
+            disabled={!selectedProjectId}
+          >
+            Edit Project
           </button>
         </div>
         </div> 
