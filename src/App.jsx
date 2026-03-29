@@ -5,6 +5,7 @@ import TaskTablePanel from "./components/TaskTablePanel";
 import TaskDetailPanel from "./components/TaskDetailPanel";
 import NewTaskOverlay from "./components/NewTaskOverlay";
 import EditTaskOverlay from "./components/EditTaskOverlay";
+import NewProjectOverlay from "./components/NewProjectOverlay";
 
 /**
  * 主畫面骨架
@@ -30,7 +31,6 @@ function App() {
     task_description: "",
     task_status: "todo",
     assigned_to_user_id: "",
-    created_by_user_id: "",
     due_date: "",
   });
 
@@ -42,6 +42,13 @@ function App() {
     task_status: "todo",
     assigned_to_user_id: "",
     due_date: "",
+  });
+
+  // New Project Overlay
+  const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
+  const [newProjectForm, setNewProjectForm] = useState({
+    project_name: "",
+    project_description: "",
   });
 
   // users
@@ -60,18 +67,43 @@ function App() {
 
   // projects
   const [projects, setProjects] = useState([]);
-  useEffect(() => {  
-    fetch(`${API_BASE_URL}/projects`)
-      .then((res) => res.json())
-      .then((data) => {
-        setProjects(data);
+  const fetchProjects = async (preferredProjectId = null) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/projects`);
 
-        // 預設選第一個 project
-        if (data.length > 0) {
-          setSelectedProjectId(data[0].project_id);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch projects: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const projectList = Array.isArray(data) ? data : [];
+
+      setProjects(projectList);
+
+      if (preferredProjectId) {
+        const matchedProject = projectList.find(
+          (project) => project.project_id === preferredProjectId
+        );
+
+        if (matchedProject) {
+          setSelectedProjectId(preferredProjectId);
+          return;
         }
-      })
-      .catch((err) => console.error("Failed to fetch projects:", err));
+      }
+
+      if (projectList.length > 0) {
+        setSelectedProjectId(projectList[0].project_id);
+      } else {
+        setSelectedProjectId(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch projects:", error);
+      setProjects([]);
+      setSelectedProjectId(null);
+    }
+  };
+  useEffect(() => {  
+    fetchProjects();
   }, []);
 
   // tasks 理論上已篩選自projectId
@@ -192,21 +224,15 @@ function App() {
     fetchComments(selectedTaskId);
   }, [selectedTaskId]);
 
-  /**
-   * 取得目前選到的 task
-   */
+  // 取得目前選到的 task
   const selectedTask = useMemo(() => {
     return tasks.find((task) => task.task_id === selectedTaskId) || null;
   }, [tasks, selectedTaskId]);
 
-  /**
-   * 取得目前 task 底下的留言
-   */
+  // 取得目前 task 底下的留言
   const selectedTaskComments = Array.isArray(comments)? comments : [];
 
-  /**
-   * 狀態 badge 顏色
-   */
+  // 狀態 badge 顏色
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case "todo":
@@ -220,9 +246,7 @@ function App() {
     }
   };
 
-  /**
-   * 清空所有task舊資料
-   */
+  // 清空所有task舊資料
   const setAllTaskDefault = () =>{
     setSelectedTaskId(null);
     setTasks([]);
@@ -234,42 +258,51 @@ function App() {
     setNewCommentContent("");
   }
 
-  // 開啟 New Task Overlay
-  const openNewTaskOverlay = () => {
-    setNewTaskForm({
-      task_title: "",
-      task_description: "",
-      task_status: "todo",
-      assigned_to_user_id: currentUserId || "",
-      created_by_user_id: "",
-      due_date: "",
-    });
+  // 建立新project -POST -refresh projectlist -choose new project
+  const handleCreateProject = async () => {
+    if (!newProjectForm.project_name.trim()) {
+      alert("Project name is required.");
+      return;
+    }
 
-    setIsNewTaskOpen(true);
-  };
-  // 關閉 New Task Overlay
-  const closeNewTaskOverlay = () => {
-    setIsNewTaskOpen(false);
-  };
-/**
- * 處理 New Task 表單欄位變化
- */
-  const handleNewTaskFormChange = (event) => {
-    const { name, value } = event.target;
+    const payload = {
+      project_name: newProjectForm.project_name.trim(),
+      project_description: newProjectForm.project_description.trim(),
+      created_by_user_id: currentUserId,
+    };
 
-    setNewTaskForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+    try {
+      const response = await fetch(`${API_BASE_URL}/projects`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-  /**
-   * 建立新 task
-   * - 呼叫 POST /tasks
-   * - 成功後關閉 overlay
-   * - refresh task list
-   * - 自動選中新建立的 task
-   */
+      if (!response.ok) {
+        throw new Error(`Failed: ${response.status}`);
+      }
+
+      const createdProject = await response.json();
+
+      // 關閉 new project overlay
+      closeNewProjectOverlay();
+
+      // refresh projects，並自動切到新 project
+      await fetchProjects(createdProject.project_id);
+
+      // 切新 project 時，順手把 task/detail/comment 狀態清掉
+      setSelectedTaskId(null);
+      setTasks([]);
+      setComments([]);
+    } catch (error) {
+      console.error("Create project failed:", error);
+      alert("Failed to create project.");
+    }
+  };
+  
+  // 建立新 task -POST -成功後關閉 overlay -refresh task list -choose new task
   const handleCreateTask = async () => {
     // 簡單前端驗證
     if (!selectedProjectId) {
@@ -322,10 +355,7 @@ function App() {
     }
   };
 
-  /**
-   * 刪除 task
-   * 成功後refresh task list
-   */
+  // 刪除 task -refresh task list
   const handleDeleteTask = async () => {
     if (!selectedTaskId) {
       alert("Please select a task first.");
@@ -355,38 +385,7 @@ function App() {
     }
   };
 
-  // 開啟 Edit Task Overlay
-  const openEditTaskOverlay = () => {
-    if (!selectedTask) {
-      return;
-    }
-
-    setEditTaskForm({
-      task_title: selectedTask.task_title || "",
-      task_description: selectedTask.task_description || "",
-      task_status: selectedTask.task_status || "todo",
-      assigned_to_user_id: selectedTask.assigned_to_user_id ?? "",
-      due_date: selectedTask.due_date
-        ? selectedTask.due_date.slice(0, 10)
-        : "",
-    });
-
-    setIsEditTaskOpen(true);
-  };
-  // 關閉 Edit Task Overlay
-  const closeEditTaskOverlay = () => {
-    setIsEditTaskOpen(false);
-  };
-
-  const handleEditTaskFormChange = (event) => {
-    const { name, value } = event.target;
-
-    setEditTaskForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
+  // update task -PUT -refresh task list - choose this task
   const handleEditTask = async () => {
     if (!selectedTaskId) {
       alert("Please select a task first.");
@@ -421,6 +420,7 @@ function App() {
         throw new Error(`Failed: ${response.status}`);
       }
 
+      // 關閉overlay
       closeEditTaskOverlay();
 
       // 更新後重抓，並維持選中這筆 task
@@ -431,7 +431,7 @@ function App() {
     }
   };
 
-  // 建立新 task comment 後refresh task comments
+  // 建立新 task comment -refresh task comments
   const handleCreateComment = async () =>{
     if (!selectedTaskId){
       alert("This should never happened.");
@@ -471,20 +471,92 @@ function App() {
     }
   }
 
-/**
- * 切換 Project
- * - 清空 task 舊資料
- * - 重設 filter / sort
- * - 切換目前選到的 project
- */
+ // 切換 Project- 清空 task 舊資料 - 重設 filter / sort - 切換目前選到的 project
   const handleProjectChange = (projectId) => {
     setAllTaskDefault();
     setSelectedProjectId(projectId);
   };
+  
+  // 開啟 New Project Overlay
+  const openNewProjectOverlay = () => {
+    setNewProjectForm({
+      project_name: "",
+      project_description: "",
+    });
 
-  const handleOpenNewProject = () => {
-    console.log("Open New Project Overlay");
+    setIsNewProjectOpen(true);
   };
+  // 開啟 New Task Overlay
+  const openNewTaskOverlay = () => {
+    setNewTaskForm({
+      task_title: "",
+      task_description: "",
+      task_status: "todo",
+      assigned_to_user_id: currentUserId || "",
+      due_date: "",
+    });
+
+    setIsNewTaskOpen(true);
+  };
+  // 開啟 Edit Task Overlay
+  const openEditTaskOverlay = () => {
+    if (!selectedTask) {
+      return;
+    }
+
+    setEditTaskForm({
+      task_title: selectedTask.task_title || "",
+      task_description: selectedTask.task_description || "",
+      task_status: selectedTask.task_status || "todo",
+      assigned_to_user_id: selectedTask.assigned_to_user_id ?? "",
+      due_date: selectedTask.due_date
+        ? selectedTask.due_date.slice(0, 10)
+        : "",
+    });
+
+    setIsEditTaskOpen(true);
+  };
+
+  // 關閉 New Project Overlay
+  const closeNewProjectOverlay = () => {
+    setIsNewProjectOpen(false);
+  }
+  // 關閉 New Task Overlay
+  const closeNewTaskOverlay = () => {
+    setIsNewTaskOpen(false);
+  }
+  // 關閉 Edit Task Overlay
+  const closeEditTaskOverlay = () => {
+    setIsEditTaskOpen(false);
+  }
+
+  // New Project Form Change
+  const handleNewProjectFormChange = (event) => {
+    const { name, value } = event.target;
+
+    setNewProjectForm((prev) => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+  // New Task Form Change
+  const handleNewTaskFormChange = (event) => {
+    const { name, value } = event.target;
+
+    setNewTaskForm((prev) => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+  // Edit Task Form Change
+  const handleEditTaskFormChange = (event) => {
+    const { name, value } = event.target;
+
+    setEditTaskForm((prev) => ({
+      ...prev,
+      [name]: value
+    }))
+  }
 
   return (
     <div className="container-fluid py-3">
@@ -529,7 +601,7 @@ function App() {
               projects={projects}
               selectedProjectId={selectedProjectId}
               onProjectChange={handleProjectChange}
-              onOpenNewProject={handleOpenNewProject}/>
+              onOpenNewProject={openNewProjectOverlay}/>
           </div>     
         </div>
 
@@ -592,6 +664,13 @@ function App() {
         projects={projects}
         selectedProjectId={selectedProjectId}
         users={users}
+      />
+      <NewProjectOverlay
+        isOpen={isNewProjectOpen}
+        onClose={closeNewProjectOverlay}
+        onSubmit={handleCreateProject}
+        newProjectForm={newProjectForm}
+        onFormChange={handleNewProjectFormChange}
       />
     </div>
   );
