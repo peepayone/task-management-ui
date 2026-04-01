@@ -350,6 +350,39 @@ function App() {
       alert("Failed to update project.");
     }
   };
+
+  // 刪除 project -refresh project list
+  const handleDeleteProject = async () => {
+    if (!selectedProjectId) {
+      alert("Please select a project first.");
+      return;
+    }
+
+    const confirmed = window.confirm("Are you sure you want to delete this project?");
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/projects/${selectedProjectId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed: ${response.status}`);
+      }
+
+      // 重新抓 project list
+      await fetchProjects();
+
+      // 重設所有資料
+      setAllTaskDefault
+    } catch (error) {
+      console.error("Delete task failed:", error);
+      alert("Failed to delete task.");
+    }
+  };
   
   // 建立新 task -POST -成功後關閉 overlay -refresh task list -choose new task
   const handleCreateTask = async () => {
@@ -680,7 +713,8 @@ function App() {
               selectedProjectId={selectedProjectId}
               onProjectChange={handleProjectChange}
               onOpenNewProject={openNewProjectOverlay}
-              onOpenEditProject={openEditProjectOverlay}/>
+              onOpenEditProject={openEditProjectOverlay}
+              onDeleteProject={handleDeleteProject}/>
           </div>     
         </div>
 

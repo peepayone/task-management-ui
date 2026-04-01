@@ -6,7 +6,8 @@ function ProjectPanel({
   selectedProjectId,
   onProjectChange,
   onOpenNewProject,
-  onOpenEditProject
+  onOpenEditProject,
+  onDeleteProject
 }) {
   return (
     <div className="card-body">
@@ -51,6 +52,16 @@ function ProjectPanel({
         ) : (
           <div className="text-muted">No projects found.</div>
         )}
+      </div>
+      <div className="d-flex justify-content-center mt-3">
+        <button
+          type="button"
+          className="btn btn-danger btn-sm"
+          onClick={onDeleteProject}
+          disabled={!selectedProjectId}
+        >
+          Delete Project
+        </button>
       </div>
     </div>
   );
