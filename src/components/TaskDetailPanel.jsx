@@ -9,7 +9,9 @@ function TaskDetailPanel({
   setNewCommentContent,
   onSubmitComment,
   onDeleteTask,
-  onOpenEditTask
+  onOpenEditTask,
+  onDeleteComment,
+  currentUserId
 }) {
   return (
     <div>
@@ -85,9 +87,20 @@ function TaskDetailPanel({
                     comments.map((comment) => (
                     <div
                         key={comment.task_comment_id}
-                        className="border rounded p-2 mb-2 bg-light"
+                        className="border rounded p-2 mb-2 bg-light position-relative"
                     >
+
                         <div className="fw-semibold">{comment.user_name}</div>
+                        {/* 只有本人才能刪 */}
+                        {comment.user_id === currentUserId && (
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger position-absolute top-0 end-0"
+                            onClick={() => onDeleteComment(comment.task_comment_id)}
+                        >
+                            ×
+                        </button>
+                        )}
                         <div>{comment.task_comment_content}</div>
                     </div>
                     ))

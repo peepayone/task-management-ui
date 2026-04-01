@@ -553,6 +553,33 @@ function App() {
     }
   };
 
+  // 刪除 task comment -refresh task comments
+  const handleDeleteComment = async (commentId) => {
+    if (!commentId) return;
+
+    const confirmed = window.confirm("Delete this comment?");
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/task-comments/${commentId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed: ${response.status}`);
+      }
+
+      // 重新抓 comments
+      await fetchComments(selectedTaskId);
+    } catch (error) {
+      console.error("Delete comment failed:", error);
+      alert("Failed to delete comment.");
+    }
+  };
+
  // 切換 Project- 清空 task 舊資料 - 重設 filter / sort - 切換目前選到的 project
   const handleProjectChange = (projectId) => {
     if (projectId === selectedProjectId) return;
@@ -754,6 +781,8 @@ function App() {
               onSubmitComment={handleCreateComment}
               onDeleteTask={handleDeleteTask}
               onOpenEditTask={openEditTaskOverlay}
+              onDeleteComment={handleDeleteComment}
+              currentUserId={currentUserId}
             />
           </div>
         </div>
