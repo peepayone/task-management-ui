@@ -1,16 +1,89 @@
-# React + Vite
+# Task Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack task management system built with **React** and **ASP.NET Core Web API**, designed to manage projects, tasks, and comments with filtering, sorting, and real-time updates.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Features
 
-## React Compiler
+### Project Management
+- Create Project
+- Edit Project
+- Delete Project (cascade delete)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Task Management
+- Create Task
+- Edit Task
+- Delete Task
+- Filter by status / assigned user
+- Sort by multiple fields
+- Auto refresh after operations
 
-## Expanding the ESLint configuration
+### Comment System
+- Add Comment
+- Delete Comment (only by owner)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### UX Features
+- Auto-select newly created items
+- Auto refresh after CRUD operations
+- Loading / disabled states
+- Overlay-based UI
+
+---
+
+## 🛠 Tech Stack
+
+Frontend:
+- React (Hooks)
+- Vite
+- Bootstrap
+
+Backend:
+- ASP.NET Core Web API
+- Entity Framework Core
+
+Database:
+- SQL Server
+
+---
+
+## ⚡ Getting Started
+
+### Backend
+1. Open solution in Visual Studio
+2. Configure connection string
+3. Run API
+
+### Frontend
+cd frontend
+npm install
+npm run dev
+
+---
+
+## 🔐 Environment Variables
+
+VITE_API_BASE_URL=http://localhost:5000/api
+
+---
+
+## 🧪 Demo Flow
+
+1. Select project → tasks update
+2. Create task → auto select
+3. Edit task
+4. Add comment
+5. Delete comment
+6. Filter / sort
+7. Delete task
+8. Create project → auto switch
+
+---
+
+## 🎯 Design Highlights
+
+- RESTful API design
+- Clean separation (Controller / Service / DTO)
+- State-driven UI
+- Consistent naming
+- Overlay interaction
