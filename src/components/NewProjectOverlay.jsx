@@ -4,6 +4,7 @@ function NewProjectOverlay({
   onSubmit,
   newProjectForm,
   onFormChange,
+  isCreating
 }) {
   if (!isOpen) return null;
 
@@ -72,16 +73,18 @@ function NewProjectOverlay({
             type="button"
             className="btn btn-outline-secondary"
             onClick={onClose}
+            disabled={isCreating}
           >
-            Cancel
+            {isCreating ? "Creating..." : "Cancel"}
           </button>
 
           <button
             type="button"
             className="btn btn-success"
             onClick={onSubmit}
+            disabled={isCreating}
           >
-            Create Project
+            {isCreating ? "Creating..." : "Create Project"}
           </button>
         </div>
       </div>

@@ -7,7 +7,8 @@ function ProjectPanel({
   onProjectChange,
   onOpenNewProject,
   onOpenEditProject,
-  onDeleteProject
+  onDeleteProject,
+  isDeleting
 }) {
   return (
     <div className="card-body">
@@ -58,9 +59,9 @@ function ProjectPanel({
           type="button"
           className="btn btn-danger btn-sm"
           onClick={onDeleteProject}
-          disabled={!selectedProjectId}
+          disabled={!selectedProjectId || isDeleting}
         >
-          Delete Project
+          {isDeleting ? "isDeleting..." : "Delete Project"}
         </button>
       </div>
     </div>

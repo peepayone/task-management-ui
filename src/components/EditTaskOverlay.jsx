@@ -6,7 +6,8 @@ function EditTaskOverlay({
   onFormChange,
   projects,
   selectedProjectId,
-  users
+  users,
+  isEditing
 }) {
   if (!isOpen) return null;
 
@@ -135,16 +136,18 @@ function EditTaskOverlay({
             type="button"
             className="btn btn-outline-secondary"
             onClick={onClose}
+            disabled={isEditing}
           >
-            Cancel
+            {isEditing ? "Editing..." : "Cancel"}
           </button>
 
           <button
             type="button"
             className="btn btn-primary"
             onClick={onSubmit}
+            disabled={isEditing}
           >
-            Save Changes
+            {isEditing ? "Editing" : "Save Changes"}
           </button>
         </div>
       </div>

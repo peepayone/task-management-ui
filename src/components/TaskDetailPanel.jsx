@@ -11,7 +11,10 @@ function TaskDetailPanel({
   onDeleteTask,
   onOpenEditTask,
   onDeleteComment,
-  currentUserId
+  currentUserId,
+  isCreatingComment,
+  isDeletingComment,
+  isDeletingTask
 }) {
   return (
     <div>
@@ -74,9 +77,9 @@ function TaskDetailPanel({
                         type="button"
                         className="btn btn-danger btn-sm m-1"
                         onClick={onDeleteTask}
-                        disabled={!selectedTask}
+                        disabled={!selectedTask || isDeletingTask}
                     >
-                        Delete Task
+                        {isDeletingTask ? "Deleting..." : "Delete Task"}
                     </button>
                 </div>
                 <hr />
@@ -97,6 +100,7 @@ function TaskDetailPanel({
                             type="button"
                             className="btn btn-sm btn-outline-danger position-absolute top-0 end-0"
                             onClick={() => onDeleteComment(comment.task_comment_id)}
+                            disabled={isDeletingComment}
                         >
                             ×
                         </button>
@@ -120,8 +124,9 @@ function TaskDetailPanel({
                     />
                     <button
                     className="btn btn-success btn-sm"
-                    onClick={onSubmitComment}>
-                        Add Comment
+                    onClick={onSubmitComment}
+                    disabled={isCreatingComment}>
+                        {isCreatingComment ? "Creating..." : "Add Comment"}
                     </button>
                 </div>
             </div>

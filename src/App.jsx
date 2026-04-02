@@ -59,6 +59,9 @@ function App() {
     project_description: "",
   });
 
+  // loading state
+  const [actionLoading, setActionLoading] = useState("");
+
   // users
   const [users, setUsers] = useState([]);
   useEffect(() => {
@@ -280,6 +283,9 @@ function App() {
     };
 
     try {
+      // diable button
+      setActionLoading("createProject");
+
       const response = await fetch(`${API_BASE_URL}/projects`, {
         method: "POST",
         headers: {
@@ -307,6 +313,8 @@ function App() {
     } catch (error) {
       console.error("Create project failed:", error);
       alert("Failed to create project.");
+    } finally {
+      setActionLoading("");
     }
   };
 
@@ -328,6 +336,9 @@ function App() {
     }
 
     try {
+      // diable button
+      setActionLoading("editProject");
+
       const response = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}`, {
         method: "PUT",
         headers: {
@@ -348,6 +359,8 @@ function App() {
     } catch (error) {
       console.error("Update project failed:", error);
       alert("Failed to update project.");
+    } finally {
+      setActionLoading("");
     }
   };
 
@@ -362,6 +375,9 @@ function App() {
     if (!confirmed) return;
 
     try {
+      // diable button
+      setActionLoading("deleteProject");
+
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}`,
         {
@@ -381,6 +397,8 @@ function App() {
     } catch (error) {
       console.error("Delete task failed:", error);
       alert("Failed to delete task.");
+    } finally {
+      setActionLoading("");
     }
   };
   
@@ -411,6 +429,9 @@ function App() {
     };
 
     try {
+      // diable button
+      setActionLoading("createTask");
+
       const response = await fetch(`${API_BASE_URL}/tasks`, {
         method: "POST",
         headers: {
@@ -434,6 +455,8 @@ function App() {
     } catch (error) {
       console.error("Failed to create task:", error);
       alert("Failed to create task.");
+    } finally {
+      setActionLoading("");
     }
   };
 
@@ -448,6 +471,9 @@ function App() {
     if (!confirmed) return;
 
     try {
+      // disable button
+      setActionLoading("deleteTask");
+
       const response = await fetch(
         `${API_BASE_URL}/tasks/${selectedTaskId}`,
         {
@@ -464,6 +490,8 @@ function App() {
     } catch (error) {
       console.error("Delete task failed:", error);
       alert("Failed to delete task.");
+    } finally {
+      setActionLoading("");
     }
   };
 
@@ -490,6 +518,9 @@ function App() {
     };
 
     try {
+      // diable button
+      setActionLoading("editTask");
+
       const response = await fetch(`${API_BASE_URL}/tasks/${selectedTaskId}`, {
         method: "PUT",
         headers: {
@@ -510,6 +541,8 @@ function App() {
     } catch (error) {
       console.error("Update task failed:", error);
       alert("Failed to update task.");
+    } finally {
+      setActionLoading("");
     }
   };
 
@@ -531,6 +564,9 @@ function App() {
     };
 
     try {
+      // diable button
+      setActionLoading("createComment");
+
       const response = await fetch(`${API_BASE_URL}/tasks/${selectedTaskId}/comments`,{
         method: "POST",
         headers: {
@@ -550,6 +586,8 @@ function App() {
     }catch(error) {
       console.error("Failed to create comment:", error);
       alert("Failed to create comment.");
+    } finally {
+      setActionLoading("");
     }
   };
 
@@ -561,6 +599,9 @@ function App() {
     if (!confirmed) return;
 
     try {
+      // diable button
+      setActionLoading("deleteComment");
+
       const response = await fetch(
         `${API_BASE_URL}/task-comments/${commentId}`,
         {
@@ -577,6 +618,8 @@ function App() {
     } catch (error) {
       console.error("Delete comment failed:", error);
       alert("Failed to delete comment.");
+    } finally {
+      setActionLoading("");
     }
   };
 
@@ -741,7 +784,9 @@ function App() {
               onProjectChange={handleProjectChange}
               onOpenNewProject={openNewProjectOverlay}
               onOpenEditProject={openEditProjectOverlay}
-              onDeleteProject={handleDeleteProject}/>
+              onDeleteProject={handleDeleteProject}
+              isDeleting={actionLoading === "deleteProject"}
+              />
           </div>     
         </div>
 
@@ -783,6 +828,9 @@ function App() {
               onOpenEditTask={openEditTaskOverlay}
               onDeleteComment={handleDeleteComment}
               currentUserId={currentUserId}
+              isCreatingComment={actionLoading === "createComment"}
+              isDeletingComment={actionLoading === "deleteComment"}
+              isDeletingTask={actionLoading === "deleteTask"}
             />
           </div>
         </div>
@@ -796,6 +844,7 @@ function App() {
         projects={projects}
         selectedProjectId={selectedProjectId}
         users={users}
+        isCreating={actionLoading === "createTask"}
       />
       <EditTaskOverlay
         isOpen={isEditTaskOpen}
@@ -806,6 +855,7 @@ function App() {
         projects={projects}
         selectedProjectId={selectedProjectId}
         users={users}
+        isEditing={actionLoading === "editTask"}
       />
       <NewProjectOverlay
         isOpen={isNewProjectOpen}
@@ -813,6 +863,7 @@ function App() {
         onSubmit={handleCreateProject}
         newProjectForm={newProjectForm}
         onFormChange={handleNewProjectFormChange}
+        isCreating={actionLoading === "createProject"}
       />
       <EditProjectOverlay
         isOpen={isEditProjectOpen}
@@ -820,6 +871,7 @@ function App() {
         onSubmit={handleEditProject}
         editProjectForm={editProjectForm}
         onFormChange={handleEditProjectFormChange}
+        isEditing={actionLoading === "editProject"}
       />
     </div>
   );

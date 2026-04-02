@@ -7,6 +7,7 @@ function NewTaskOverlay({
   projects,
   selectedProjectId,
   users,
+  isCreating
 }) {
   if (!isOpen) return null;
 
@@ -135,6 +136,7 @@ function NewTaskOverlay({
             type="button"
             className="btn btn-outline-secondary"
             onClick={onClose}
+            disabled={isCreating}
           >
             Cancel
           </button>
@@ -143,8 +145,9 @@ function NewTaskOverlay({
             type="button"
             className="btn btn-success"
             onClick={onSubmit}
+            disabled={isCreating}
           >
-            Create Task
+            {isCreating ? "Creating..." : "Create Task"}
           </button>
         </div>
       </div>

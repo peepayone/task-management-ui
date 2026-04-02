@@ -4,6 +4,7 @@ function EditProjectOverlay({
   onSubmit,
   editProjectForm,
   onFormChange,
+  isEditing
 }) {
   if (!isOpen) return null;
 
@@ -72,16 +73,18 @@ function EditProjectOverlay({
             type="button"
             className="btn btn-outline-secondary"
             onClick={onClose}
+            disabled={isEditing}
           >
-            Cancel
+            {isEditing ? "Editng..." : "Cancel"}
           </button>
 
           <button
             type="button"
             className="btn btn-primary"
             onClick={onSubmit}
+            disabled={isEditing}
           >
-            Save Changes
+            {isEditing ? "Editng..." : "Save Changes"}
           </button>
         </div>
       </div>
